@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 // ─── Types ─────────────────────────────────────────────
-type Page = "home" | "feed" | "upload" | "profile" | "search" | "favorites" | "auth" | "watch";
+type Page = "home" | "feed" | "upload" | "profile" | "search" | "favorites" | "auth" | "watch" | "my-videos" | "liked" | "settings";
 
 interface Video {
   id: number;
@@ -610,12 +610,11 @@ function ProfilePage({ user, isLoggedIn, onNavigate, onLogout }: {
 
       <div className="glass-card overflow-hidden divide-y divide-border">
         {[
-          { icon: "Video", label: "Мои видео", badge: user.videos },
-          { icon: "Heart", label: "Понравившееся", badge: null },
-          { icon: "Bell", label: "Уведомления", badge: 3 },
-          { icon: "Settings", label: "Настройки", badge: null },
+          { icon: "Video", label: "Мои видео", badge: user.videos, page: "my-videos" as Page },
+          { icon: "Heart", label: "Понравившееся", badge: null, page: "liked" as Page },
+          { icon: "Settings", label: "Настройки", badge: null, page: "settings" as Page },
         ].map(item => (
-          <button key={item.label} className="w-full flex items-center gap-3 p-4 hover:bg-secondary/50 transition-colors">
+          <button key={item.label} onClick={() => onNavigate(item.page)} className="w-full flex items-center gap-3 p-4 hover:bg-secondary/50 transition-colors">
             <div className="w-9 h-9 rounded-xl bg-ios-blue/10 flex items-center justify-center">
               <Icon name={item.icon as Parameters<typeof Icon>[0]["name"]} size={18} className="text-ios-blue" />
             </div>
@@ -638,14 +637,153 @@ function ProfilePage({ user, isLoggedIn, onNavigate, onLogout }: {
   );
 }
 
+function MyVideosPage({ videos, user, onWatch, onNavigate }: { videos: Video[]; user: User; onWatch: (v: Video) => void; onNavigate: (p: Page) => void }) {
+  const myVideos = videos.filter(v => v.author === user.name);
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <button onClick={() => onNavigate("profile")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
+          <Icon name="ChevronLeft" size={20} />
+        </button>
+        <h1 className="text-xl font-black">Мои видео</h1>
+        <span className="ml-auto text-muted-foreground text-sm">{myVideos.length} шт.</span>
+      </div>
+      {myVideos.length === 0 ? (
+        <div className="glass-card p-10 text-center">
+          <div className="text-5xl mb-3">🎬</div>
+          <p className="font-semibold mb-1">Ты ещё ничего не загружал</p>
+          <p className="text-muted-foreground text-sm mb-4">Поделись своим первым видео!</p>
+          <button onClick={() => onNavigate("upload")} className="ios-btn flex items-center gap-2 mx-auto">
+            <Icon name="Plus" size={16} />Загрузить видео
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {myVideos.map(v => (
+            <button key={v.id} onClick={() => onWatch(v)} className="glass-card p-4 w-full flex gap-3 text-left hover:bg-secondary/40 transition-colors">
+              <div className={`w-20 h-14 rounded-xl bg-gradient-to-br ${v.thumb} flex-shrink-0`} />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm line-clamp-2">{v.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{v.views} просмотров · {v.duration}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LikedPage({ videos, onWatch, onNavigate, onVote, onSave }: { videos: Video[]; onWatch: (v: Video) => void; onNavigate: (p: Page) => void; onVote: (id: number, vote: "like" | "dislike") => void; onSave: (id: number) => void }) {
+  const liked = videos.filter(v => v.userVote === "like");
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <button onClick={() => onNavigate("profile")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
+          <Icon name="ChevronLeft" size={20} />
+        </button>
+        <h1 className="text-xl font-black">Понравившееся</h1>
+        <span className="ml-auto text-muted-foreground text-sm">{liked.length} шт.</span>
+      </div>
+      {liked.length === 0 ? (
+        <div className="glass-card p-10 text-center">
+          <div className="text-5xl mb-3">❤️</div>
+          <p className="font-semibold mb-1">Пока нет понравившихся</p>
+          <p className="text-muted-foreground text-sm">Ставь лайки видео и они появятся здесь</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {liked.map(v => (
+            <button key={v.id} onClick={() => onWatch(v)} className="glass-card p-4 w-full flex gap-3 text-left hover:bg-secondary/40 transition-colors">
+              <div className={`w-20 h-14 rounded-xl bg-gradient-to-br ${v.thumb} flex-shrink-0`} />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm line-clamp-2">{v.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{v.views} просмотров · {v.duration}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Icon name="ThumbsUp" size={12} className="text-ios-blue" />
+                  <span className="text-xs text-ios-blue font-semibold">{v.likes}</span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsPage({ user, onNavigate, onLogout, darkMode, setDarkMode }: { user: User; onNavigate: (p: Page) => void; onLogout: () => void; darkMode: boolean; setDarkMode: (v: boolean) => void }) {
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <button onClick={() => onNavigate("profile")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
+          <Icon name="ChevronLeft" size={20} />
+        </button>
+        <h1 className="text-xl font-black">Настройки</h1>
+      </div>
+
+      <div className="glass-card overflow-hidden divide-y divide-border">
+        <div className="p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-ios-blue/10 flex items-center justify-center">
+            <Icon name="User" size={18} className="text-ios-blue" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Имя</p>
+            <p className="text-muted-foreground text-xs">{user.name}</p>
+          </div>
+        </div>
+        <div className="p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-ios-blue/10 flex items-center justify-center">
+            <Icon name="Mail" size={18} className="text-ios-blue" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Email</p>
+            <p className="text-muted-foreground text-xs">{user.email}</p>
+          </div>
+        </div>
+        <div className="p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-ios-blue/10 flex items-center justify-center">
+            <Icon name={darkMode ? "Moon" : "Sun"} size={18} className="text-ios-blue" />
+          </div>
+          <span className="font-semibold text-sm flex-1">Тёмная тема</span>
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`w-12 h-6 rounded-full transition-colors ${darkMode ? "bg-ios-blue" : "bg-secondary"} relative`}
+          >
+            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${darkMode ? "left-7" : "left-1"}`} />
+          </button>
+        </div>
+      </div>
+
+      <button onClick={onLogout} className="w-full glass-card p-4 flex items-center gap-3 text-ios-red hover:bg-ios-red/5 transition-colors">
+        <div className="w-9 h-9 rounded-xl bg-ios-red/10 flex items-center justify-center">
+          <Icon name="LogOut" size={18} className="text-ios-red" />
+        </div>
+        <span className="font-semibold">Выйти из аккаунта</span>
+      </button>
+    </div>
+  );
+}
+
 function AuthPage({ onLogin }: { onLogin: (user: User) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [step, setStep] = useState<"form" | "verify">("form");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -655,23 +793,110 @@ function AuthPage({ onLogin }: { onLogin: (user: User) => void }) {
     return e;
   };
 
+  const sendCode = async () => {
+    setResendTimer(60);
+    const res = await fetch("https://functions.poehali.dev/c2f2a192-3ba4-4458-97f4-035648bddf7b", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (data.code) setGeneratedCode(data.code);
+  };
+
   const handleSubmit = () => {
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0) return;
-    setLoading(true);
-    setTimeout(() => {
-      onLogin({
-        name: mode === "register" ? name : email.split("@")[0],
-        email,
-        avatar: (mode === "register" ? name : email).charAt(0).toUpperCase(),
-        subscribers: 0,
-        videos: 0,
-        likes: 0,
+    if (mode === "register") {
+      setLoading(true);
+      sendCode().then(() => {
+        setStep("verify");
+        setLoading(false);
       });
-      setLoading(false);
-    }, 1000);
+    } else {
+      setLoading(true);
+      setTimeout(() => {
+        onLogin({
+          name: email.split("@")[0],
+          email,
+          avatar: email.charAt(0).toUpperCase(),
+          subscribers: 0,
+          videos: 0,
+          likes: 0,
+        });
+        setLoading(false);
+      }, 1000);
+    }
   };
+
+  const handleVerify = () => {
+    if (code.trim() === generatedCode) {
+      setLoading(true);
+      setTimeout(() => {
+        onLogin({
+          name,
+          email,
+          avatar: name.charAt(0).toUpperCase(),
+          subscribers: 0,
+          videos: 0,
+          likes: 0,
+        });
+        setLoading(false);
+      }, 600);
+    } else {
+      setCodeError("Неверный код. Проверь почту и попробуй снова");
+    }
+  };
+
+  if (step === "verify") {
+    return (
+      <div className="min-h-[80vh] flex flex-col justify-center animate-fade-in">
+        <div className="glass-card p-7 space-y-5">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-ios-blue to-ios-purple flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-200 dark:shadow-blue-900">
+              <Icon name="Mail" size={28} className="text-white" />
+            </div>
+            <h2 className="text-xl font-black">Подтверди email</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Мы отправили 6-значный код на<br />
+              <span className="font-semibold text-foreground">{email}</span>
+            </p>
+          </div>
+
+          <div>
+            <input
+              className={`ios-input text-center text-2xl font-black tracking-[0.5em] ${codeError ? "border-ios-red" : ""}`}
+              placeholder="000000"
+              maxLength={6}
+              value={code}
+              onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setCodeError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleVerify()}
+            />
+            {codeError && <p className="text-ios-red text-xs mt-1 ml-1 text-center">{codeError}</p>}
+          </div>
+
+          <button onClick={handleVerify} disabled={loading || code.length < 6} className="ios-btn w-full flex items-center justify-center gap-2 disabled:opacity-50">
+            {loading ? <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Подтвердить"}
+          </button>
+
+          <div className="text-center">
+            {resendTimer > 0 ? (
+              <p className="text-sm text-muted-foreground">Отправить повторно через {resendTimer} сек.</p>
+            ) : (
+              <button onClick={() => { setCode(""); setCodeError(""); sendCode(); setResendTimer(60); }} className="text-sm text-ios-blue font-semibold">
+                Отправить код повторно
+              </button>
+            )}
+          </div>
+
+          <button onClick={() => { setStep("form"); setCode(""); setCodeError(""); }} className="w-full text-center text-sm text-muted-foreground">
+            ← Назад
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex flex-col justify-center animate-fade-in">
@@ -687,8 +912,8 @@ function AuthPage({ onLogin }: { onLogin: (user: User) => void }) {
         </div>
 
         <div className="ios-segment">
-          <button onClick={() => setMode("login")} className={`ios-segment-item ${mode === "login" ? "active" : ""}`}>Вход</button>
-          <button onClick={() => setMode("register")} className={`ios-segment-item ${mode === "register" ? "active" : ""}`}>Регистрация</button>
+          <button onClick={() => { setMode("login"); setErrors({}); }} className={`ios-segment-item ${mode === "login" ? "active" : ""}`}>Вход</button>
+          <button onClick={() => { setMode("register"); setErrors({}); }} className={`ios-segment-item ${mode === "register" ? "active" : ""}`}>Регистрация</button>
         </div>
 
         <div className="space-y-3">
@@ -721,7 +946,7 @@ function AuthPage({ onLogin }: { onLogin: (user: User) => void }) {
         <button onClick={handleSubmit} disabled={loading} className="ios-btn w-full flex items-center justify-center gap-2">
           {loading
             ? <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-            : <>{mode === "login" ? "Войти" : "Создать аккаунт"}</>
+            : <>{mode === "login" ? "Войти" : "Далее →"}</>
           }
         </button>
 
@@ -1044,6 +1269,9 @@ export default function Index() {
           {page === "favorites" && <FavoritesPage videos={videos} onWatch={handleWatch} onVote={handleVote} onSave={handleSave} />}
           {page === "upload" && <UploadPage isLoggedIn={isLoggedIn} onNavigate={navigate} onPublish={(v) => { setVideos(prev => [v, ...prev]); setWatchVideo(v); setPrevPage("feed"); setPage("watch"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
           {page === "profile" && <ProfilePage user={user} isLoggedIn={isLoggedIn} onNavigate={navigate} onLogout={handleLogout} />}
+          {page === "my-videos" && user && <MyVideosPage videos={videos} user={user} onWatch={handleWatch} onNavigate={navigate} />}
+          {page === "liked" && <LikedPage videos={videos} onWatch={handleWatch} onNavigate={navigate} onVote={handleVote} onSave={handleSave} />}
+          {page === "settings" && user && <SettingsPage user={user} onNavigate={navigate} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} />}
           {page === "auth" && <AuthPage onLogin={handleLogin} />}
           {page === "watch" && watchVideo && (
             <WatchPage video={watchVideo} onBack={() => navigate(prevPage)} onVote={handleVote} onSave={handleSave} videos={videos} onWatch={handleWatch} />

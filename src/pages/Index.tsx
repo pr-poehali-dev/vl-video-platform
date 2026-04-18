@@ -360,7 +360,7 @@ function FavoritesPage({ videos, onWatch, onVote, onSave }: {
   );
 }
 
-function UploadPage({ onPublish }: { onPublish: (v: Video) => void }) {
+function UploadPage({ onPublish, isLoggedIn, onNavigate }: { onPublish: (v: Video) => void; isLoggedIn: boolean; onNavigate: (p: Page) => void }) {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -372,6 +372,19 @@ function UploadPage({ onPublish }: { onPublish: (v: Video) => void }) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!isLoggedIn) {
+    return (
+      <div className="text-center py-20 animate-fade-in">
+        <div className="w-20 h-20 rounded-3xl bg-ios-blue/10 flex items-center justify-center mx-auto mb-4">
+          <Icon name="Lock" size={36} className="text-ios-blue" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Нужна регистрация</h2>
+        <p className="text-muted-foreground mb-6">Войди или создай аккаунт, чтобы публиковать видео</p>
+        <button onClick={() => onNavigate("auth")} className="ios-btn">Войти / Регистрация</button>
+      </div>
+    );
+  }
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("video/")) return;
@@ -1029,7 +1042,7 @@ export default function Index() {
           {page === "feed" && <FeedPage videos={videos} onWatch={handleWatch} onVote={handleVote} onSave={handleSave} />}
           {page === "search" && <SearchPage videos={videos} onWatch={handleWatch} />}
           {page === "favorites" && <FavoritesPage videos={videos} onWatch={handleWatch} onVote={handleVote} onSave={handleSave} />}
-          {page === "upload" && <UploadPage onPublish={(v) => { setVideos(prev => [v, ...prev]); setWatchVideo(v); setPrevPage("feed"); setPage("watch"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
+          {page === "upload" && <UploadPage isLoggedIn={isLoggedIn} onNavigate={navigate} onPublish={(v) => { setVideos(prev => [v, ...prev]); setWatchVideo(v); setPrevPage("feed"); setPage("watch"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />}
           {page === "profile" && <ProfilePage user={user} isLoggedIn={isLoggedIn} onNavigate={navigate} onLogout={handleLogout} />}
           {page === "auth" && <AuthPage onLogin={handleLogin} />}
           {page === "watch" && watchVideo && (

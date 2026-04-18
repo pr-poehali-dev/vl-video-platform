@@ -44,16 +44,7 @@ const COLORS = [
 
 const ICONS = ["🎬", "🎮", "🎵", "🌍", "🏋️", "🍕", "🚀", "🎨"];
 
-const INITIAL_VIDEOS: Video[] = [
-  { id: 1, title: "Как выучить программирование за 30 дней", author: "TechGuru", avatar: "TG", views: "2.4М", duration: "12:34", thumb: "from-blue-500 to-indigo-600", likes: 48200, dislikes: 1200, userVote: null, description: "Полный гайд по изучению программирования с нуля за 30 дней. Разберём Python, JS и базы данных.", category: "Образование", saved: false },
-  { id: 2, title: "Топ 10 мест для путешествий в 2026 году", author: "WanderWorld", avatar: "WW", views: "892К", duration: "8:21", thumb: "from-green-500 to-teal-600", likes: 31500, dislikes: 890, userVote: null, description: "Лучшие направления для путешествий в этом году по версии наших подписчиков.", category: "Путешествия", saved: false },
-  { id: 3, title: "Обзор iPhone 18 Pro — стоит ли покупать?", author: "GadgetShow", avatar: "GS", views: "5.1М", duration: "18:07", thumb: "from-gray-500 to-gray-700", likes: 112000, dislikes: 4300, userVote: null, description: "Честный обзор нового iPhone. Сравниваем с прошлым поколением и андроид-флагманами.", category: "Технологии", saved: false },
-  { id: 4, title: "Рецепт идеального ризотто за 20 минут", author: "Chef Mario", avatar: "CM", views: "430К", duration: "6:15", thumb: "from-orange-500 to-yellow-600", likes: 28900, dislikes: 320, userVote: null, description: "Классический итальянский рецепт ризотто с трюфелем и пармезаном.", category: "Кулинария", saved: false },
-  { id: 5, title: "Тренировка всего тела за 15 минут дома", author: "FitLife", avatar: "FL", views: "1.7М", duration: "15:00", thumb: "from-red-500 to-pink-600", likes: 67400, dislikes: 980, userVote: null, description: "Эффективная тренировка без инвентаря. Подходит для начинающих и продвинутых.", category: "Фитнес", saved: false },
-  { id: 6, title: "Лучшие игры 2026 года — мой рейтинг", author: "GameZone", avatar: "GZ", views: "3.2М", duration: "22:45", thumb: "from-purple-500 to-violet-600", likes: 94100, dislikes: 2100, userVote: null, description: "Топ игр этого года по разным жанрам. Что обязательно нужно пройти?", category: "Игры", saved: false },
-  { id: 7, title: "Как медитация изменила мою жизнь", author: "MindSpace", avatar: "MS", views: "670К", duration: "10:30", thumb: "from-cyan-500 to-blue-600", likes: 41200, dislikes: 560, userVote: null, description: "Личный опыт ежедневной медитации в течение года. Результаты и техники.", category: "Образ жизни", saved: false },
-  { id: 8, title: "Создаём сайт на React за 1 час", author: "CodeCraft", avatar: "CC", views: "980К", duration: "58:12", thumb: "from-lime-500 to-green-600", likes: 53800, dislikes: 1400, userVote: null, description: "Пишем полноценное приложение на React с нуля. Идеально для начинающих разработчиков.", category: "Программирование", saved: false },
-];
+const INITIAL_VIDEOS: Video[] = [];
 
 const CATEGORIES = ["Все", "Технологии", "Образование", "Игры", "Кулинария", "Фитнес", "Путешествия", "Образ жизни", "Программирование"];
 
@@ -187,21 +178,33 @@ function HomePage({ onNavigate, videos, onWatch, onVote, onSave }: {
 
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">🔥 В тренде</h2>
-          <button onClick={() => onNavigate("feed")} className="text-ios-blue text-sm font-semibold">Все →</button>
+          <h2 className="text-xl font-bold">🔥 Последние видео</h2>
+          {trending.length > 0 && <button onClick={() => onNavigate("feed")} className="text-ios-blue text-sm font-semibold">Все →</button>}
         </div>
-        <div className="space-y-4">
-          {trending.map(v => (
-            <VideoCard key={v.id} video={v} onWatch={onWatch} onVote={onVote} onSave={onSave} />
-          ))}
-        </div>
+        {trending.length === 0 ? (
+          <div className="glass-card p-10 text-center">
+            <div className="text-5xl mb-3">🎬</div>
+            <p className="font-semibold text-base mb-1">Видео пока нет</p>
+            <p className="text-muted-foreground text-sm mb-4">Стань первым — загрузи своё видео!</p>
+            <button onClick={() => onNavigate("upload")} className="ios-btn flex items-center gap-2 mx-auto">
+              <Icon name="Plus" size={16} />
+              Загрузить первое видео
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {trending.map(v => (
+              <VideoCard key={v.id} video={v} onWatch={onWatch} onVote={onVote} onSave={onSave} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Видео", value: "8", icon: "Video" },
-          { label: "Авторов", value: "8", icon: "Users" },
-          { label: "Лайков", value: "477К", icon: "Heart" },
+          { label: "Видео", value: String(videos.length), icon: "Video" },
+          { label: "Лайков", value: videos.reduce((s, v) => s + v.likes, 0) > 0 ? String(videos.reduce((s, v) => s + v.likes, 0)) : "0", icon: "Heart" },
+          { label: "Сохранено", value: String(videos.filter(v => v.saved).length), icon: "Bookmark" },
         ].map(s => (
           <div key={s.label} className="glass-card p-4 text-center">
             <Icon name={s.icon as Parameters<typeof Icon>[0]["name"]} size={22} className="mx-auto mb-1 text-ios-blue" />
